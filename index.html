@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoAnomaly Pro v4 — Geospatial Anomaly Detection Platform</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@200;400;700&family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ========== TITLE BAR ========== -->
+        <div id="titlebar">
+            <div class="tb-left">
+                <div class="tlogo"></div>
+                <div class="ttxt">GEOANOMALY PRO</div>
+                <div class="tversion">v4.0</div>
+            </div>
+            <div class="tb-right">
+                <div class="tstatus">
+                    <div class="tstat-item">
+                        <div class="sdot"></div>
+                        <span id="sys_st">SYSTEM NOMINAL</span>
+                    </div>
+                    <div class="tstat-sep"></div>
+                    <div class="tstat-item">
+                        GEE: <span id="gee_st" class="accent-amber">STANDBY</span>
+                    </div>
+                    <div class="tstat-sep"></div>
+                    <div class="tstat-item">
+                        SESSION: <span id="sess_id">—</span>
+                    </div>
+                </div>
+                <div class="lang-switcher">
+                    <button class="lang-btn active" id="btn_en" onclick="setLang('en')">EN</button>
+                    <button class="lang-btn" id="btn_ar" onclick="setLang('ar')">AR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MAIN LAYOUT (3-COLUMN) ========== -->
+        <div id="main-container">
+
+            <!-- ========== LEFT PANEL (20% - Controls) ========== -->
+            <div id="left-panel" class="panel">
+
+                <!-- AOI DEFINITION SECTION -->
+                <div class="section">
+                    <div class="section-header">AOI DEFINITION</div>
+                    
+                    <div class="input-group">
+                        <div class="input-label">CENTER COORDINATES <span class="label-tag">WGS84</span></div>
+                        <div class="coord-inputs">
+                            <div class="coord-field">
+                                <label for="lat">LAT</label>
+                                <input type="number" id="lat" value="36.7372" step="0.0001" placeholder="Latitude">
+                            </div>
+                            <div class="coord-field">
+                                <label for="lon">LON</label>
+                                <input type="number" id="lon" value="3.0866" step="0.0001" placeholder="Longitude">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-label">SEARCH RADIUS <span id="rad_disp" class="label-value">1.0 km</span></div>
+                        <input type="range" id="rad_sl" class="slider" min="10" max="10000" value="1000" step="10" oninput="updateRadius(this.value)">
+                        <div class="slider-labels">
+                            <span>10m</span>
+                            <span>10km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATE RANGE SECTION -->
+                <div class="section">
+                    <div class="section-header">DATE RANGE</div>
+                    
+                    <div class="input-group">
+                        <div class="input-label">TEMPORAL ANALYSIS <span class="label-tag">OPTIONAL</span></div>
+                        <div class="date-inputs">
+                            <div class="date-field">
+                                <label for="dt_from">FROM</label>
+                                <input type="date" id="dt_from" value="2024-01-01">
+                            </div>
+                            <div class="date-field">
+                                <label for="dt_to">TO</label>
+                                <input type="date" id="dt_to" value="2024-12-31">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-label">CLOUD COVER <span id="cloud_disp" class="label-value">20%</span></div>
+                        <input type="range" id="cloud_sl" class="slider" min="0" max="100" value="20" step="5" oninput="updateCloudCover(this.value)">
+                    </div>
+                </div>
+
+                <!-- DATA SOURCES SECTION -->
+                <div class="section">
+                    <div class="section-header">DATA SOURCES</div>
+                    <div class="source-grid">
+                        <div class="source-toggle active" onclick="toggleSource(this)" data-source="sentinel2">
+                            <div class="toggle-indicator"></div>
+                            <span>Sentinel-2</span>
+                        </div>
+                        <div class="source-toggle active" onclick="toggleSource(this)" data-source="sentinel1">
+                            <div class="toggle-indicator"></div>
+                            <span>Sentinel-1</span>
+                        </div>
+                        <div class="source-toggle active" onclick="toggleSource(this)" data-source="copdem">
+                            <div class="toggle-indicator"></div>
+                            <span>Copernicus DEM</span>
+                        </div>
+                        <div class="source-toggle active" onclick="toggleSource(this)" data-source="srtm">
+                            <div class="toggle-indicator"></div>
+                            <span>SRTM</span>
+                        </div>
+                        <div class="source-toggle" onclick="toggleSource(this)" data-source="landsat">
+                            <div class="toggle-indicator"></div>
+                            <span>Landsat 8/9</span>
+                        </div>
+                        <div class="source-toggle" onclick="toggleSource(this)" data-source="aster">
+                            <div class="toggle-indicator"></div>
+                            <span>ASTER</span>
+                        </div>
+                        <div class="source-toggle" onclick="toggleSource(this)" data-source="modis">
+                            <div class="toggle-indicator"></div>
+                            <span>MODIS</span>
+                        </div>
+                        <div class="source-toggle" onclick="toggleSource(this)" data-source="emit">
+                            <div class="toggle-indicator"></div>
+                            <span>EMIT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYSIS MODULES SECTION -->
+                <div class="section">
+                    <div class="section-header">ANALYSIS MODULES</div>
+                    <div class="module-grid">
+                        <div class="module-toggle active" onclick="toggleModule(this)" data-module="terrain">
+                            <div class="toggle-indicator"></div>
+                            <span>Terrain</span>
+                        </div>
+                        <div class="module-toggle active" onclick="toggleModule(this)" data-module="moisture">
+                            <div class="toggle-indicator"></div>
+                            <span>Moisture</span>
+                        </div>
+                        <div class="module-toggle active" onclick="toggleModule(this)" data-module="vegetation">
+                            <div class="toggle-indicator"></div>
+                            <span>Vegetation</span>
+                        </div>
+                        <div class="module-toggle active" onclick="toggleModule(this)" data-module="sar">
+                            <div class="toggle-indicator"></div>
+                            <span>SAR</span>
+                        </div>
+                        <div class="module-toggle active" onclick="toggleModule(this)" data-module="geological">
+                            <div class="toggle-indicator"></div>
+                            <span>Geological</span>
+                        </div>
+                        <div class="module-toggle" onclick="toggleModule(this)" data-module="thermal">
+                            <div class="toggle-indicator"></div>
+                            <span>Thermal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ML ALGORITHMS SECTION -->
+                <div class="section">
+                    <div class="section-header">ML ALGORITHMS</div>
+                    <div class="algo-grid">
+                        <button class="algo-btn" onclick="toggleAlgo(this)">PCA</button>
+                        <button class="algo-btn" onclick="toggleAlgo(this)">Isolation Forest</button>
+                        <button class="algo-btn" onclick="toggleAlgo(this)">LOF</button>
+                        <button class="algo-btn" onclick="toggleAlgo(this)">Z-Score</button>
+                    </div>
+                </div>
+
+                <!-- ANOMALY WEIGHTS SECTION -->
+                <div class="section">
+                    <div class="section-header">ANOMALY WEIGHTS</div>
+                    <div id="weights-container"></div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="action-buttons">
+                    <button class="btn-primary" id="run_btn" onclick="runAnalysis()">⬡ RUN ANALYSIS</button>
+                    <button class="btn-secondary" onclick="clearResults()">✕ CLEAR RESULTS</button>
+                </div>
+
+            </div>
+
+            <!-- ========== CENTER PANEL (65-70% - Map Workspace) ========== -->
+            <div id="center-panel" class="panel">
+
+                <!-- TOOLBAR -->
+                <div id="toolbar">
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn active" onclick="showView('map', this)">MAP VIEW</button>
+                        <button class="toolbar-btn" onclick="showView('3d', this)">3D TERRAIN</button>
+                        <button class="toolbar-btn" onclick="showView('charts', this)">CHARTS</button>
+                    </div>
+                    <div class="toolbar-separator"></div>
+                    
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" onclick="setBasemap('satellite')">SATELLITE</button>
+                        <button class="toolbar-btn" onclick="setBasemap('hybrid')">HYBRID</button>
+                        <button class="toolbar-btn" onclick="setBasemap('topographic')">TOPO</button>
+                        <button class="toolbar-btn" onclick="setBasemap('dark')">DARK</button>
+                    </div>
+                    <div class="toolbar-separator"></div>
+                    
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="tb_ndvi" onclick="toggleOverlay('ndvi', this)">NDVI</button>
+                        <button class="toolbar-btn" id="tb_ndwi" onclick="toggleOverlay('ndwi', this)">NDWI</button>
+                        <button class="toolbar-btn" id="tb_dem" onclick="toggleOverlay('dem', this)">DEM</button>
+                        <button class="toolbar-btn" id="tb_slope" onclick="toggleOverlay('slope', this)">SLOPE</button>
+                        <button class="toolbar-btn" id="tb_ndbi" onclick="toggleOverlay('ndbi', this)">NDBI</button>
+                        <button class="toolbar-btn" id="tb_iron" onclick="toggleOverlay('iron', this)">IRON</button>
+                        <button class="toolbar-btn" id="tb_clay" onclick="toggleOverlay('clay', this)">CLAY</button>
+                        <button class="toolbar-btn" id="tb_anomaly" onclick="toggleOverlay('anomaly', this)">ANOMALY</button>
+                    </div>
+                    
+                    <div class="toolbar-spacer"></div>
+                    <div class="toolbar-info" id="cur_coords">LAT: — LON: —</div>
+                </div>
+
+                <!-- MAP VIEW CONTAINER -->
+                <div id="map-view" class="view-container active">
+                    <div id="map"></div>
+                    
+                    <!-- LEGEND -->
+                    <div id="legend">
+                        <div class="legend-title">ANOMALY SCORE</div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #22c55e;"></div>
+                            <span>0–20 Normal</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #84cc16;"></div>
+                            <span>20–40 Weak</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #f59e0b;"></div>
+                            <span>40–60 Moderate</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #f97316;"></div>
+                            <span>60–80 Strong</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ef4444;"></div>
+                            <span>80–100 Very Strong</span>
+                        </div>
+                    </div>
+
+                    <!-- SCALE BAR -->
+                    <div id="scale-bar">
+                        <span id="scale_txt">1:50,000</span>
+                    </div>
+                </div>
+
+                <!-- 3D VIEW CONTAINER -->
+                <div id="3d-view" class="view-container">
+                    <canvas id="canvas-3d"></canvas>
+                    <button class="view-close-btn" onclick="showView('map', document.querySelector('#toolbar .toolbar-btn:first-of-type'))">✕ CLOSE</button>
+                </div>
+
+                <!-- CHARTS VIEW CONTAINER -->
+                <div id="charts-view" class="view-container">
+                    <button class="view-close-btn" onclick="showView('map', document.querySelector('#toolbar .toolbar-btn:first-of-type'))">✕ CLOSE</button>
+                    <div id="charts-container"></div>
+                </div>
+
+            </div>
+
+            <!-- ========== RIGHT PANEL (15% - Analysis Results) ========== -->
+            <div id="right-panel" class="panel">
+
+                <!-- TABS NAVIGATION -->
+                <div class="tabs-nav">
+                    <button class="tab-btn active" onclick="showTab('layers', this)">LAYERS</button>
+                    <button class="tab-btn" onclick="showTab('indicators', this)">INDICATORS</button>
+                    <button class="tab-btn" onclick="showTab('statistics', this)">STATISTICS</button>
+                    <button class="tab-btn" onclick="showTab('export', this)">EXPORT</button>
+                    <button class="tab-btn" onclick="showTab('logs', this)">LOGS</button>
+                </div>
+
+                <!-- LAYERS TAB -->
+                <div class="tab-content active" id="tab_layers">
+                    <div id="layers-list"></div>
+                </div>
+
+                <!-- INDICATORS TAB -->
+                <div class="tab-content" id="tab_indicators">
+                    <div id="indicators-list"></div>
+                </div>
+
+                <!-- STATISTICS TAB -->
+                <div class="tab-content" id="tab_statistics">
+                    <div id="statistics-grid"></div>
+                </div>
+
+                <!-- EXPORT TAB -->
+                <div class="tab-content" id="tab_export">
+                    <div class="export-options">
+                        <div class="export-item" onclick="exportCSV()">
+                            <div class="export-icon">📊</div>
+                            <div class="export-info">
+                                <div class="export-name">CSV</div>
+                                <div class="export-desc">Tabular data</div>
+                            </div>
+                        </div>
+                        <div class="export-item" onclick="exportKML()">
+                            <div class="export-icon">📍</div>
+                            <div class="export-info">
+                                <div class="export-name">KML</div>
+                                <div class="export-desc">Google Earth</div>
+                            </div>
+                        </div>
+                        <div class="export-item" onclick="exportGeoJSON()">
+                            <div class="export-icon">🗺️</div>
+                            <div class="export-info">
+                                <div class="export-name">GeoJSON</div>
+                                <div class="export-desc">GIS Format</div>
+                            </div>
+                        </div>
+                        <div class="export-item" onclick="exportPDF()">
+                            <div class="export-icon">📄</div>
+                            <div class="export-info">
+                                <div class="export-name">PDF</div>
+                                <div class="export-desc">Report</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOGS TAB -->
+                <div class="tab-content" id="tab_logs">
+                    <div id="logs-list"></div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ========== STATUS BAR ========== -->
+        <div id="status-bar">
+            <span id="status_coords">LAT: — LON: —</span>
+            <div class="status-separator"></div>
+            <span id="status_zoom">Zoom: —</span>
+            <div class="status-separator"></div>
+            <span id="status_backend">Backend: <span class="accent-red">OFFLINE</span></span>
+            <div class="status-separator"></div>
+            <span id="status_message">Ready</span>
+        </div>
+
+        <!-- ========== PROGRESS OVERLAY ========== -->
+        <div id="progress-overlay" class="hidden">
+            <div class="progress-modal">
+                <div class="progress-header">PROCESSING</div>
+                <div class="progress-log" id="progress_log"></div>
+                <div class="progress-body">
+                    <div class="progress-section">
+                        <span class="progress-label">Overall Progress</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="progress_bar"></div>
+                        </div>
+                        <span class="progress-percent" id="progress_percent">0%</span>
+                    </div>
+                </div>
+                <button class="btn-cancel" onclick="cancelAnalysis()">CANCEL</button>
+            </div>
+        </div>
+
+        <!-- ========== TOAST NOTIFICATIONS ========== -->
+        <div id="toast-container"></div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
